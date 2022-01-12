@@ -72,10 +72,10 @@ class SongData:
     def serialise_with_metadata(self, audio_segment: AudioSegment, album: str = ""):
         if self.start_time != 0 and self.end_time == 0:
             audio_segment[self.start_time:] \
-                .export(f"{self.title}.mp3", format="mp3", tags={"artist": self.author, "album": album, "track": self.track_num})
+                .export(f"{self.title}.mp3", format="mp3", tags={"artist": self.author, "album": album, "track": self.track_num + 1})
         else:
             audio_segment[self.start_time:self.end_time] \
-                .export(f"{self.title}.mp3", format="mp3", tags={"artist": self.author, "album": album, "track": self.track_num})
+                .export(f"{self.title}.mp3", format="mp3", tags={"artist": self.author, "album": album, "track": self.track_num + 1})
 
 
 # this function loads both the music file and the SongDatas from provided source paths
