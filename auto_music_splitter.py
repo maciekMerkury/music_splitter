@@ -6,6 +6,8 @@ import pathlib
 WHITESPACE = ['\t', '', ' ']
 SPLIT_CHAR = '|'
 
+WAIT = False
+
 
 class bcolours:
     HEADER = '\033[95m'
@@ -34,13 +36,17 @@ def main():
     for item in song_datas[1]:
         print(item)
 
-    input("finished loading song data, waiting to start serialising songs with metadata")
+    print("finished loading song data, waiting to start serialising songs with metadata")
+    if WAIT:
+        input()
 
     for song in song_datas[1]:
         print(f"starting to serialise {song.title}")
         song.serialise_with_metadata(song_datas[0], album=album)
 
-    input("finished, waiting...")
+    print("finished, waiting...")
+    if WAIT:
+        input()
 
 
 class SongData:
@@ -48,11 +54,13 @@ class SongData:
     end_time: int = 0
     author: str = "author"
     title: str = "title"
+    track_num: int = 0
 
-    def __init__(self, start_time: int, author: str, title: str):
+    def __init__(self, start_time: int, author: str, title: str, track_num: int):
         self.start_time = start_time
         self.author = author
         self.title = title
+        self.track_num = track_num
 
     def __str__(self):
         return f"start_time: {self.start_time}, end_time: {self.end_time}, author: {self.author}, title: {self.title}"
@@ -64,10 +72,10 @@ class SongData:
     def serialise_with_metadata(self, audio_segment: AudioSegment, album: str = ""):
         if self.start_time != 0 and self.end_time == 0:
             audio_segment[self.start_time:] \
-                .export(f"{self.title}.mp3", format="mp3", tags={"artist": self.author, "album": album})
+                .export(f"{self.title}.mp3", format="mp3", tags={"artist": self.author, "album": album, "track": self.track_num})
         else:
             audio_segment[self.start_time:self.end_time] \
-                .export(f"{self.title}.mp3", format="mp3", tags={"artist": self.author, "album": album})
+                .export(f"{self.title}.mp3", format="mp3", tags={"artist": self.author, "album": album, "track": self.track_num})
 
 
 # this function loads both the music file and the SongDatas from provided source paths
@@ -77,13 +85,15 @@ def load_music_and_SongData(song_path: str, SongData_source_path: str) -> (Audio
     sond_datas: list[SongData] = []
 
     file_content = open(SongData_source_path, mode="r").read()
+    track_pos: int = 0
     for line in file_content.splitlines():
         # print(line)
         if romanised:
             if not line == "":
                 l = line.split(SPLIT_CHAR)
                 d = l[1].split(" - ")
-                sond_datas.append(SongData(timestamp_to_milliseconds(l[0]), d[0], d[1]))
+                sond_datas.append(SongData(timestamp_to_milliseconds(l[0]), d[0], d[1], track_pos))
+                track_pos += 1
         elif line.startswith("# romanised"):
             print(f"{bcolours.OKGREEN}romanised tag found{bcolours.ENDC}")
             romanised = True
@@ -95,7 +105,8 @@ def load_music_and_SongData(song_path: str, SongData_source_path: str) -> (Audio
             if not line == "" or not line.startswith("#"):
                 l = line.split(SPLIT_CHAR)
                 d = l[1].split(" - ")
-                sond_datas.append(SongData(timestamp_to_milliseconds(l[0]), d[0], d[1]))
+                sond_datas.append(SongData(timestamp_to_milliseconds(l[0]), d[0], d[1], track_pos))
+                track_pos += 1
 
     for i in range(len(sond_datas) - 1):
         sond_datas[i].end_time = sond_datas[i + 1].start_time
